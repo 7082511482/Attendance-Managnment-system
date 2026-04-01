@@ -1,0 +1,81 @@
+import React, { useState, useEffect } from 'react';
+
+// Mock function to simulate API calls
+const mockApiSubmit = async (data) => {
+  return new Promise((resolve) => setTimeout(() => resolve({ success: true }), 1000));
+};
+
+export default function AttendanceTracker() {
+  const [status, setStatus] = useState('Off-Duty');
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [loading, setLoading] = useState(false);
+  const [logs, setLogs] = useState([]);
+
+  // Keep the clock running
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleClockAction = async (actionType) => {
+    setLoading(true);
+    const timestamp = new Date();
+    
+    // In a real app, you would use browser geolocation API here
+    const payload = {
+      type: actionType,
+      time: timestamp.toISOString(),
+      location: "Office/Remote" 
+    };
+
+    try {
+      await mockApiSubmit(payload);
+      
+      setLogs([{ action: actionType, time: timestamp.toLocaleTimeString() }, ...logs]);
+      setStatus(actionType === 'Clock In' ? 'On-Duty' : 'Off-Duty');
+    } catch (error) {
+      console.error("Failed to log attendance", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ padding: '20px', maxWidth: '400px', margin: 'auto', border: '1px solid #ddd', borderRadius: '8px' }}>
+      <h2>Attendance Tracker</h2>
+      <div style={{ fontSize: '24px', marginBottom: '10px' }}>
+        {currentTime.toLocaleTimeString()}
+      </div>
+      
+      <p>Current Status: <strong>{status}</strong></p>
+
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+        <button 
+          onClick={() => handleClockAction('Clock In')} 
+          disabled={status === 'On-Duty' || loading}
+          style={{ padding: '10px 20px', cursor: 'pointer', background: '#28a745', color: '#fff', border: 'none', borderRadius: '4px' }}
+        >
+          {loading && status === 'Off-Duty' ? 'Processing...' : 'Clock In'}
+        </button>
+        
+        <button 
+          onClick={() => handleClockAction('Clock Out')} 
+          disabled={status === 'Off-Duty' || loading}
+          style={{ padding: '10px 20px', cursor: 'pointer', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px' }}
+        >
+          {loading && status === 'On-Duty' ? 'Processing...' : 'Clock Out'}
+        </button>
+      </div>
+
+      <h3>Today's Logs</h3>
+      <ul style={{ listStyleType: 'none', padding: 0 }}>
+        {logs.map((log, index) => (
+          <li key={index} style={{ padding: '5px 0', borderBottom: '1px solid #eee' }}>
+            <strong>{log.action}</strong> at {log.time}
+          </li>
+        ))}
+        {logs.length === 0 && <p style={{ color: '#888' }}>No activity yet today.</p>}
+      </ul>
+    </div>
+  );
+}
